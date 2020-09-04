@@ -88,9 +88,19 @@ agentsLabel = compose('%d', [agents.id]);
 fprintf('\tAgents z:\n');
 disp_table(get_z(), tasksLabel, agentsLabel);
 
-for t = 1:2
+for t = 1:10
     for i = 1:NUM_AGENTS
         agents(i).buildBundle();
+%         fprintf('\tAgents z:\n');
+%         disp_table(get_z(), tasksLabel, agentsLabel);
+        for m = 1:NUM_AGENTS
+            if i == m
+                continue
+            end
+            agents(i).conflictRes(t, m, agents(m).zi, agents(m).yi, agents(m).si)
+        end
+%         fprintf('\tAgents z:\n');
+%         disp_table(get_z(), tasksLabel, agentsLabel);
     end
     fprintf('\tAgents z:\n');
     disp_table(get_z(), tasksLabel, agentsLabel);

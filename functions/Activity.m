@@ -73,7 +73,6 @@ classdef Activity
                 end
             end
         end
-        
     end
 end
         

@@ -13,6 +13,7 @@ classdef Agent < handle
         bi
         pi
         yi
+        si
         wsoloi
         wanyi
     end
@@ -42,7 +43,7 @@ classdef Agent < handle
             end
         end
         
-        function val = excl(obj, j, cij)
+        function val = mutex1(obj, j, cij)
             global tasks
             q = tasks(j).q();
             activity = tasks(j).activity();
@@ -51,6 +52,21 @@ classdef Agent < handle
             for u = 1:size(deps, 2)
                 j_u = activity.elements(u).id;
                 if ~( length(obj.yi) < j_u || cij > obj.yi(j_u) ) && ( deps(u, q) == -1 )
+                    val = 0;
+                    break;
+                end
+            end
+        end
+        
+        function val = mutex2(obj, j)
+            global tasks
+            q = tasks(j).q();
+            activity = tasks(j).activity();
+            deps = activity.deps();
+            val = 1;
+            for u = 1:size(deps, 2)
+                j_u = activity.elements(u).id;
+                if ~( length(obj.yi) < j_u || ( length(obj.yi) >= j && obj.yi(j) > obj.yi(j_u) ) ) && ( deps(u, q) == -1 )
                     val = 0;
                     break;
                 end
@@ -83,7 +99,7 @@ classdef Agent < handle
                 end
             end
             
-            val = val && obj.excl(j, cij);
+            val = val && obj.mutex1(j, cij);
         end
         
         function buildBundle(obj)
@@ -115,7 +131,7 @@ classdef Agent < handle
                     [~, n_max] = max(new_cij);
                     new_pi(j,:) = new_pij(n_max,:);
                     new_ci(j) = new_cij(n_max);
-                    new_ci(j) = new_ci(j) * obj.canBid(avail_tasks(j), new_ci(j));
+                    new_ci(j) = new_ci(j) * obj.canBid(avail_tasks(j), new_ci(j)) * ( length(obj.yi) < avail_tasks(j) || new_ci(j) > obj.yi(avail_tasks(j)) );
                 end
 
                 [ci_max, j_max] = max(new_ci);
@@ -160,6 +176,145 @@ classdef Agent < handle
                 dist = dist + DIST_PER_SQUARE * (norm(tasks(path(j)).pos - last_pos) + norm(tasks(path(j)).target - tasks(path(j)).pos));
                 time(j) = dist / SPEED;
                 last_pos = tasks(path(j)).target;
+            end
+        end
+        
+        function conflictRes(obj, t, m, zm, ym, sm)
+            obj.si(m) = t;
+            
+            for j = 1:length(zm)
+                if zm(j) == 0
+                    if length(obj.zi) < j || obj.zi(j) == 0
+                        % LEAVE
+                    elseif obj.zi(j) == obj.id
+                        % LEAVE
+                    elseif obj.zi(j) == m
+                        % UPDATE
+                        obj.updateRes(j, ym(j), zm(j));
+                    else
+                        n = obj.zi(j);
+                        if length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) )
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        end
+                    end
+                elseif zm(j) == m
+                    if length(obj.zi) < j || obj.zi(j) == 0
+                        % UPDATE
+                        obj.updateRes(j, ym(j), zm(j));
+                    elseif obj.zi(j) == obj.id
+                        if ym(j) > obj.yi(j)
+                            % UPDATE & RELEASE
+                            obj.updateRes(j, ym(j), zm(j));
+                            obj.releaseBundle(j);
+                        end
+                    elseif obj.zi(j) == m
+                        % UPDATE
+                        obj.updateRes(j, ym(j), zm(j));
+                    else
+                        n = obj.zi(j);
+                        if length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) ) || ...
+                           ym(j) > obj.yi(j)
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        end
+                    end
+                elseif zm(j) == obj.id
+                    if length(obj.zi) < j || obj.zi(j) == 0
+                        % LEAVE
+                    elseif obj.zi(j) == obj.id
+                        % LEAVE
+                    elseif obj.zi(j) == m
+                        % RESET
+                        obj.resetRes(j);
+                    else
+                        n = obj.zi(j);
+                        if length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) )
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        end
+                    end
+                else
+                    n = zm(j);
+                    if length(obj.zi) < j || obj.zi(j) == 0
+                        if length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) )
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        end
+                    elseif obj.zi(j) == obj.id
+                        if ( length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) ) ) && ...
+                           ym(j) > obj.yi(j)
+                            % UPDATE & RELEASE
+                            obj.updateRes(j, ym(j), zm(j));
+                            obj.releaseBundle(j);
+                        end
+                    elseif obj.zi(j) == m
+                        if length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) )
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        else
+                            % RESET
+                            obj.resetRes(j);
+                        end
+                    elseif obj.zi(j) == n
+                        if length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) )
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        end
+                    else
+                        o = obj.zi(j);
+                        if ( length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) ) ) && ...
+                           ( length(obj.si) < o || ( length(sm) >= o && sm(o) > obj.si(o) ) ) 
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        elseif ( length(obj.si) < n || ( length(sm) >= n && sm(n) > obj.si(n) ) ) && ...
+                               ym(j) > obj.yi(j)
+                            % UPDATE
+                            obj.updateRes(j, ym(j), zm(j));
+                        elseif ( length(sm) < n || ( length(obj.si) >= n && obj.si(n) > sm(n) ) ) && ...
+                               ( length(obj.si) < o || ( length(sm) >= o && sm(o) > obj.si(o) ) ) 
+                            % RESET
+                            obj.resetRes(j);
+                        end
+                    end
+                end
+            end
+            
+            j = 1;
+            while true
+                if j > length(obj.bi)
+                    break
+                end
+                if ~obj.mutex2(obj.bi(j))
+                    resetRes(obj, obj.bi(j))
+                    obj.releaseBundle(obj.bi(j))
+                end
+                j = j + 1;
+            end
+        end
+        
+        function updateRes(obj, j, ymj, zmj)
+            obj.yi(j) = ymj;
+            obj.zi(j) = zmj;
+        end
+        
+        function resetRes(obj, j)
+            obj.yi(j) = 0;
+            obj.zi(j) = 0;
+        end
+        
+        function releaseBundle(obj, j)
+            for j_b = 1:length(obj.bi)
+                if obj.bi(j_b) == j
+                    obj.bi(j_b) = [];
+                    break;
+                end
+            end
+            for j_p = 1:length(obj.pi)
+                if obj.pi(j_p) == j
+                    obj.pi(j_p) = [];
+                    break;
+                end
             end
         end
     end

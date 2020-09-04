@@ -49,8 +49,15 @@ tasks(1).dep = [2, 7, 8, 9, 11; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
 tasks(2).dep = [1, 7, 8, 9, 11; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
 tasks(7).dep = [8, 1, 2, 9, 11; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
 tasks(8).dep = [7, 1, 2, 9, 11; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
-tasks(7).dep = [8, 1, 2, 9, 11; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
-% tasks(3).dep = [2; DEP_AND];
+tasks(9).dep = [11, 1, 2, 7, 8; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
+tasks(11).dep = [9, 1, 2, 7, 8; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
+
+tasks(3).dep = [4, 5, 6, 10, 12; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
+tasks(4).dep = [3, 5, 6, 10, 12; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
+tasks(5).dep = [6, 3, 4, 10, 12; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
+tasks(6).dep = [5, 3, 4, 10, 12; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
+tasks(10).dep = [12, 3, 4, 5, 6; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
+tasks(12).dep = [10, 3, 4, 5, 6; DEP_AND, DEP_EXC, DEP_EXC, DEP_EXC, DEP_EXC];
 
 fprintf('\tAgents Position:\n');
 disp([agents.pos]);
@@ -84,6 +91,12 @@ disp_table(get_z(), tasksLabel, agentsLabel);
 for t = 1:2
     for i = 1:NUM_AGENTS
         agents(i).buildBundle();
+        for m = 1:NUM_AGENTS
+            if i == m
+                continue
+            end
+            agents(i).conflictRes(t, m, zm, ym, sm)
+        end
     end
     fprintf('\tAgents z:\n');
     disp_table(get_z(), tasksLabel, agentsLabel);
