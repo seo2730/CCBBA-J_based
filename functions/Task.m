@@ -5,6 +5,8 @@ classdef Task
     properties
         id
         pos
+        target
+        reward
         k
         dep
         timeout

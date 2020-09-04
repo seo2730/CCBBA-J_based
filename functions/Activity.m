@@ -4,11 +4,13 @@ classdef Activity
     
     properties
         id
+        dep
     end
     
     methods
         function obj = Activity(id)
             obj.id = id;
+            obj.dep = [];
         end
         
         function arr = elements(obj, q)
@@ -21,18 +23,22 @@ classdef Activity
         end
         
         function mat = deps(obj)
-            elements = obj.elements();
-            mat = zeros(length(elements));
-            for q = 1:length(elements)
-                task = elements(q);
-                deps = task.dep;
-                for i = 1:size(deps, 2)
-                    u = find(deps(1, i) == [elements.id], 1);
-                    type = deps(2, i);
-                    if ~isempty(u)
-                        mat(u, q) = type;
+            if isempty(obj.dep)
+                elements = obj.elements();
+                mat = zeros(length(elements));
+                for q = 1:length(elements)
+                    task = elements(q);
+                    deps = task.dep;
+                    for i = 1:size(deps, 2)
+                        u = find(deps(1, i) == [elements.id], 1);
+                        type = deps(2, i);
+                        if ~isempty(u)
+                            mat(u, q) = type;
+                        end
                     end
                 end
+            else
+                mat = obj.dep;
             end
         end
         
