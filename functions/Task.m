@@ -9,6 +9,9 @@ classdef Task
         reward
         k
         dep
+        temp
+        timeStart
+        timeEnd
         timeout
     end
     
@@ -17,7 +20,9 @@ classdef Task
             %UNTITLED2 Construct an instance of this class
             %   Detailed explanation goes here
             obj.id = id;
-            timeout = 10;
+            obj.timeout = 3;
+            obj.timeStart = -1e+10;
+            obj.timeEnd = 1e+10;
         end
         
         function val = q(obj)

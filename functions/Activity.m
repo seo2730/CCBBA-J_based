@@ -5,12 +5,14 @@ classdef Activity
     properties
         id
         dep
+        temp
     end
     
     methods
         function obj = Activity(id)
             obj.id = id;
             obj.dep = [];
+            obj.temp = [];
         end
         
         function arr = elements(obj, q)
@@ -39,6 +41,32 @@ classdef Activity
                 end
             else
                 mat = obj.dep;
+            end
+        end
+        
+        function mat = temps(obj)
+            TEMP_AFTER = 1;
+            TEMP_BEFORE = 0;
+            
+            if isempty(obj.temp)
+                elements = obj.elements();
+                mat = 1e+10 * (ones(length(elements)) - eye(length(elements)));
+                for q = 1:length(elements)
+                    task = elements(q);
+                    temps = task.temp;
+                    for i = 1:size(temps, 2)
+                        u = find(temps(1, i) == [elements.id], 1);
+                        tempType = temps(2, i);
+                        tempTime = -temps(3, i);
+                        if ~isempty(u)
+                            if tempType == TEMP_AFTER
+                                mat(u, q) = tempTime;
+                            else
+                                mat(q, u) = tempTime;
+                            end
+                        end
+                    end
+                end
             end
         end
         
