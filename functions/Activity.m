@@ -67,6 +67,8 @@ classdef Activity
                         end
                     end
                 end
+            else
+                mat = obj.temp;
             end
         end
         
@@ -93,12 +95,18 @@ classdef Activity
             end
             arr = zeros(1, length(q));
             
+            
             for i = 1:length(q)
+                max_Dj1 = 0;
                 for u = 1:size(deps, 2)
                     if deps(u, q(i)) == 1
                         arr(i) = arr(i) + 1;
                     end
+                    if (deps(u, q(i)) - 1) > max_Dj1
+                        max_Dj1 = deps(u, q(i)) - 1;
+                    end
                 end
+                arr(i) = arr(i) + max_Dj1;
             end
         end
     end
