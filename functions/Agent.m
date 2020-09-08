@@ -50,7 +50,9 @@ classdef Agent < handle
                 end
             end
             
-            val = n_Dsat(1);
+            if ~isempty(n_Dsat)
+                val = n_Dsat(1);
+            end
             for n_D = 2:max_D
                 if n_Dsat(n_D) > 0
                     val = val + 1;
@@ -88,6 +90,7 @@ classdef Agent < handle
                 end
                 j_u = activity.elements(u).id;
                 if ~( length(obj.yi) < j_u || ( length(obj.yi) >= j && obj.yi(j) > obj.yi(j_u) ) || ( deps(u, q) ~= -1 ) )
+%                     fprintf('MUTEX2: Task %d has price (%.2f) lower than Task %d (%.2f)\n', j, obj.yi(j), j_u, obj.yi(j_u));
                     val = 0;
                     break;
                 end
@@ -104,9 +107,9 @@ classdef Agent < handle
             q = tasks(j).q();
             activity = tasks(j).activity();
             
-            
             deps = activity.deps();
             temps = activity.temps();
+            dups = activity.dups();
             
             tMin = tasks(j).timeStart;
             tMax = tasks(j).timeEnd;
@@ -116,7 +119,10 @@ classdef Agent < handle
                     continue
                 end
                 j_u = activity.elements(u).id;
-                if length(obj.zi) >= j_u && obj.zi(j_u) > 0 && (deps(u, q) > 0)
+                if (length(obj.zi) >= j_u && obj.zi(j_u) > 0 && (deps(u, q) > 0)) || dups(u, q)
+                    if length(zetai) < j_u
+                        zetai(j_u) = 0;
+                    end
                     tMinConst = zetai(j_u) - temps(u, q);
                     tMaxConst = zetai(j_u) + temps(q, u);
                     if tMinConst > tMin
@@ -174,7 +180,7 @@ classdef Agent < handle
                     val = 0;
                 end
             else
-                if ( ( length(obj.wanyi) < j || obj.wanyi(j) < 3 ) && nsat > 0 ) || ...
+                if ( ( length(obj.wanyi) < j || obj.wanyi(j) < 3 ) && (nsat > 0) ) || ...
                    ( length(obj.wsoloi) < j || obj.wsoloi(j) < 3 ) || ( nsat == Nreq )
                     val = 1; % TODO: Change this value to canBid_i(k_q) variable from paper at page 1645
                 else
@@ -182,7 +188,7 @@ classdef Agent < handle
                 end
             end
             
-            val = val && ( length(obj.yi) < j || cij > obj.yi(j) );
+            val = val && ( length(obj.yi) < j || cij > ( obj.yi(j) + 0.1 ) );
 %             if j == 4
 %                 disp(val);
 %             end
@@ -226,13 +232,13 @@ classdef Agent < handle
                     new_pi(j,:) = new_pij(n_max,:);
                     
                     new_ci(j) = new_cij(n_max);
-                    fprintf('Adding task %d to bundle, Raw: %.2f, ', avail_tasks(j), new_ci(j));
+%                     fprintf('Adding task %d to bundle, Raw: %.2f, ', avail_tasks(j), new_ci(j));
                     new_ci(j) = new_ci(j) * obj.canBid(avail_tasks(j), new_ci(j));
-                    fprintf('Score: %.2f, Path: ', new_ci(j));
+%                     fprintf('Score: %.2f, Path: ', new_ci(j));
                     
-                    path_str = join(sprintfc('%d ', new_pi(j,:)));
-                    fprintf(path_str{1});
-                    fprintf('\n');
+%                     path_str = join(sprintfc('%d ', new_pi(j,:)));
+%                     fprintf(path_str{1});
+%                     fprintf('\n');
                 end
 
                 [ci_max, j_max] = max(new_ci);
@@ -285,20 +291,27 @@ classdef Agent < handle
             end
             
             [time, dist] = obj.calcTime(path);
+%             if dist > 9
+%                 reward = 0;
+%                 return
+%             end
             reward = 0;
             for j = 1:length(path)
                 if time < 1e+10
                     reward = reward + exp(-0.01*time(j)) * tasks(path(j)).reward;
                 end
             end
-            reward = reward - 10 * dist;
+%             reward = reward - 5 * dist;
+            if reward < 0
+                reward = 0;
+            end
         end
         
         function [time, cum_dist] = calcTime(obj, path)
             global tasks
             SPEED = 1; % m/s
             DIST_PER_SQUARE = 1;
-            LOAD_TIME = 3;
+            LOAD_TIME = 0;
             
             if ~exist('path', 'var')
                 path = obj.pi;
@@ -311,13 +324,23 @@ classdef Agent < handle
             zetai = obj.zetai;
             for j = 1:length(path)
                 [tMin, tMax] = obj.temps1(path(j), zetai);
-                
                 dist = DIST_PER_SQUARE * (norm(tasks(path(j)).pos - last_pos) + norm(tasks(path(j)).target - tasks(path(j)).pos));
+                
+                if (j > 1) && (tasks(path(j-1)).uniqueId == tasks(path(j)).uniqueId)
+                    dist = 0;
+                end
+                
                 cum_dist = cum_dist + dist;
                 last_time = last_time + dist / SPEED;
-                last_time = max(last_time, tMin);
+                if last_time <= 0
+                    last_time = max(last_time, tMin);
+                end
+                if tMax > 0
+                    last_time = min(last_time, tMax);
+                end
                 
-                fprintf('[%.2f] ', last_time);
+                
+%                 fprintf('[%.2f] ', last_time);
 %                 if last_time > tMax
 %                     last_time = 1e+10;
 %                 end
@@ -463,7 +486,6 @@ classdef Agent < handle
                 if ~obj.temps2(j_b)
                     fprintf('Agent %d: TEMPORAL CONFLICT FOR TASK %d\n', obj.id, j_b)
                     obj.incrementW(j_b);
-                    
                     obj.releaseBundle(j_b);
                     obj.resetRes(j_b);
                     j = 1;

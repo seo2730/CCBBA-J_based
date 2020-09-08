@@ -4,10 +4,12 @@ classdef Task
     
     properties
         id
+        uniqueId
         pos
         target
         reward
         k
+        delivery
         dep
         temp
         timeStart
@@ -20,6 +22,7 @@ classdef Task
             %UNTITLED2 Construct an instance of this class
             %   Detailed explanation goes here
             obj.id = id;
+            obj.uniqueId = id;
             obj.timeout = 3;
             obj.timeStart = -1e+10;
             obj.timeEnd = 1e+10;

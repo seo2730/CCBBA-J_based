@@ -5,6 +5,7 @@ classdef Activity
     properties
         id
         dep
+        dup
         temp
     end
     
@@ -41,6 +42,21 @@ classdef Activity
                 end
             else
                 mat = obj.dep;
+            end
+        end
+        
+        function mat = dups(obj)
+            if isempty(obj.dup)
+                elements = obj.elements();
+                mat = zeros(length(elements));
+                for q = 1:length(elements)
+                    task = elements(q);
+                    u = find(task.uniqueId == [elements.uniqueId]);
+                    u = u(u~=q);
+                    mat(q, u) = 1;
+                end
+            else
+                mat = obj.dup;
             end
         end
         
