@@ -17,16 +17,16 @@ classdef GridWorld < handle
     end
     
     methods
-        function obj = GridWorld(graph_axis)
+        function obj = GridWorld(graph_axis, nodes)
             %GRIDWORLD Construct an instance of this class
             %   Detailed explanation goes here
-            obj.fig = figure('Position', [500 10 1000 1000]);
+            obj.fig = figure('Position', [100 100 800 800]);
             obj.gca = gca;
             obj.axis = graph_axis;
             
-%             for i = 1:size(nodes,2)
-%                 rectangle('Position', [nodes(1,i)-0.5, nodes(2,i)-0.5, 1, 1], 'FaceColor', [0.9 0.9 0.9])
-%             end
+            for i = 1:size(nodes,2)
+                rectangle('Position', [nodes(1,i)-0.5, nodes(2,i)-0.5, 1, 1], 'FaceColor', [0.9 0.9 0.9])
+            end
             
             graph_axis(1) = graph_axis(1) - 0.5;
             graph_axis(2) = graph_axis(2) + 0.5;
@@ -78,7 +78,7 @@ classdef GridWorld < handle
                             end
                         end
                         
-                        obj.agents_label(i).Position(1) = agent.pos(1) + 0.2;
+                        obj.agents_label(i).Position(1) = agent.pos(1);
                         obj.agents_label(i).Position(2) = obj.agents_plot(i).YData;
                         return
                     end
@@ -86,7 +86,7 @@ classdef GridWorld < handle
             end
             hold on
             obj.agents_id = [obj.agents_id agent.id];
-            obj.agents_plot = [obj.agents_plot plot(agent.pos(1) + 0.1, agent.pos(2), 'b.')];
+            obj.agents_plot = [obj.agents_plot plot(agent.pos(1), agent.pos(2), '.', 'Color', [0.5, 0.5, 1], 'MarkerSize', 20)];
             obj.agents_label = [obj.agents_label text(agent.pos(1) + 0.2, agent.pos(2), int2str(agent.id), 'Color', 'blue', 'FontSize', 8)];
             
             i = length(obj.agents_id);
@@ -125,7 +125,7 @@ classdef GridWorld < handle
             if ~isempty(obj.tasks_id)
                 for i = 1:length(obj.tasks_id)
                     if obj.tasks_id(i) == task.id
-                        obj.tasks_plot(i).XData = task.pos(1) - 0.1;
+                        obj.tasks_plot(i).XData = task.pos(1);
                         obj.tasks_plot(i).YData = task.pos(2);
                         
                         arrange_done = false;
@@ -157,7 +157,7 @@ classdef GridWorld < handle
             end
             hold on
             obj.tasks_id = [obj.tasks_id task.id];
-            obj.tasks_plot = [obj.tasks_plot plot(task.pos(1)- 0.1, task.pos(2), 'r.')];
+            obj.tasks_plot = [obj.tasks_plot plot(task.pos(1), task.pos(2), '.', 'Color', [1, 0.5, 0.5], 'MarkerSize', 20)];
             obj.tasks_label = [obj.tasks_label text(task.pos(1) - 0.4, task.pos(2), int2str(task.id), 'Color', 'red', 'FontSize', 8)];
             
             i = length(obj.tasks_id);
@@ -186,21 +186,26 @@ classdef GridWorld < handle
             obj.tasks_label(i).Position(2) = obj.tasks_plot(i).YData;
             
             quiv_length = [task.target(1)-task.pos(1), task.target(2)-task.pos(2)];
-            quiver(obj.tasks_plot(i).XData, obj.tasks_plot(i).YData, quiv_length(1), quiv_length(2), 'Color', [1, 0.5, 0.5], 'AutoScale', 'off', 'MaxHeadSize', 0.5/norm(quiv_length))
+            quiver(obj.tasks_plot(i).XData, obj.tasks_plot(i).YData, quiv_length(1), quiv_length(2), 'Color', [1, 0.8, 0.8], 'AutoScale', 'off', 'MaxHeadSize', 1/norm(quiv_length), 'LineStyle', '-', 'LineWidth', 4)
             hold off
         end
         
-        function plot_path(obj, path)
+        function plot_path(obj, id, path, color)
+            if ~exist('color', 'var')
+                color = 'blue';
+            end
             path_plot = [];
             hold on
+%             shift = obj.agents_plot(id).YData - path(2, 1);
+%             path(2, :) = path(2, :) + shift;
+            
             for i = 1:length(path) - 1
-                path_plot = [path_plot, plot([path(1, i) path(1, i+1)], [path(2, i) path(2, i+1)], 'k-')];
+                quiver_size = [path(1, i+1) - path(1, i), path(2, i+1) - path(2, i)];
+                path_plot = [path_plot, quiver(path(1, i), path(2, i), quiver_size(1), quiver_size(2), 'color', color, 'MaxHeadSize', 0.5 ./ norm(quiver_size), 'AutoScale', 'off', 'LineWidth', 1.5)];
             end
             hold off
             obj.path_plot{end+1} = path_plot;
             obj.path_id(end+1) = length(obj.path_id) + 1;
-            
-            
         end
         
         function [distance, path] = get_shortest_path(obj, from_loc, to_loc)

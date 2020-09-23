@@ -1,4 +1,4 @@
-classdef Activity
+classdef Activity < handle
     %ACTIVITIES Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -6,6 +6,7 @@ classdef Activity
         id
         dep
         dup
+        element
         temp
     end
     
@@ -14,11 +15,17 @@ classdef Activity
             obj.id = id;
             obj.dep = [];
             obj.temp = [];
+            obj.element = [];
         end
         
         function arr = elements(obj, q)
             global tasks
-            elements = find([tasks.k] == obj.id);
+            if isempty(obj.element)
+                elements = find([tasks.k] == obj.id);
+                obj.element = elements;
+            else
+                elements = obj.element;
+            end
             if ~exist('q', 'var')
                 q = 1:length(elements);
             end
@@ -40,6 +47,7 @@ classdef Activity
                         end
                     end
                 end
+                obj.dep = mat;
             else
                 mat = obj.dep;
             end
@@ -55,6 +63,7 @@ classdef Activity
                     u = u(u~=q);
                     mat(q, u) = 1;
                 end
+                obj.dup = mat;
             else
                 mat = obj.dup;
             end
@@ -83,6 +92,7 @@ classdef Activity
                         end
                     end
                 end
+                obj.temp = mat;
             else
                 mat = obj.temp;
             end

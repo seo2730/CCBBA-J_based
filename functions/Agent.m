@@ -202,7 +202,7 @@ classdef Agent < handle
         function buildBundle(obj)
             global tasks
 
-            tasks_id = [tasks.id];
+            tasks_id = 1:length(tasks);
             
             while length(obj.bi) < obj.Lt
                 
@@ -237,24 +237,24 @@ classdef Agent < handle
 %                     fprintf('Score: %.2f, Path: ', new_ci(j));
                     
 %                     path_str = join(sprintfc('%d ', new_pi(j,:)));
-%                     fprintf(path_str{1});
+%                     fprintf(path_str{1});   
 %                     fprintf('\n');
                 end
 
                 [ci_max, j_max] = max(new_ci);
-                if ci_max == min(new_ci) && ci_max == 0
+                if (ci_max == min(new_ci) && ci_max == 0) || ci_max < 0
                     break
                 end
                 
                 obj.bi = [obj.bi, avail_tasks(j_max)];
                 obj.pi = new_pi(j_max, :);
                 obj.zetai(obj.pi) = obj.calcTime();
-                obj.yi(avail_tasks(j_max)) = new_ci(j_max);
+                obj.yi(avail_tasks(j_max)) = new_ci(j_max) + 0.1;
                 obj.zi(avail_tasks(j_max)) = obj.id;
             end
             obj.zetai(obj.pi) = obj.calcTime();
             
-            obj.checkTimeout()
+            
         end
         
         function checkTimeout(obj)
@@ -298,10 +298,10 @@ classdef Agent < handle
             reward = 0;
             for j = 1:length(path)
                 if time < 1e+10
-                    reward = reward + exp(-0.01*time(j)) * tasks(path(j)).reward;
+                    reward = reward + exp(-0.001*time(j)) * tasks(path(j)).reward;
                 end
             end
-%             reward = reward - 5 * dist;
+            reward = reward - 5 * dist;
             if reward < 0
                 reward = 0;
             end
@@ -352,7 +352,7 @@ classdef Agent < handle
         end
         
         function conflictRes(obj, t, m, gm, zm, ym, sm, zetam)
-            global tasks
+%             global tasks
             obj.si(m) = t;
             for n = 1:length(sm)
                 if m == n
@@ -462,11 +462,7 @@ classdef Agent < handle
                     end
                 end
             end
-            
-            
-            
-            
-            
+
             j = 1;
             while true
                 if j > length(obj.bi)
@@ -479,7 +475,6 @@ classdef Agent < handle
                     
                     obj.releaseBundle(j_b);
                     obj.resetRes(j_b);
-                    j = 1;
                     continue
                 end
                 
@@ -488,7 +483,6 @@ classdef Agent < handle
                     obj.incrementW(j_b);
                     obj.releaseBundle(j_b);
                     obj.resetRes(j_b);
-                    j = 1;
                     continue
                 end
                 
@@ -496,6 +490,8 @@ classdef Agent < handle
             end
             
 %             obj.buildBundle();
+            obj.checkTimeout()
+            
         end
         
         function incrementW(obj, j)

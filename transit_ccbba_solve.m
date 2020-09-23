@@ -76,7 +76,8 @@ for t = 1:20
     
 end
 
-% plotGridWorld;
+plotGridWorld;
+plotSchedule;
 
 
 %% Function

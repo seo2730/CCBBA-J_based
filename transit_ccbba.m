@@ -1,7 +1,7 @@
 clc, close all, clear all
 addpath('functions');
 
-rng(1);
+% rng(2);
 
 global DEBUG_LEVEL
 DEBUG_LEVEL = 1;
@@ -13,10 +13,10 @@ DEP_EXC = -1;
 TEMP_AFTER = 1;
 TEMP_BEFORE = 0;
 
-NUM_AGENTS = 5;                             % Number of agents
-NUM_DELIVERIES = 3;                             % Number of tasks
+NUM_AGENTS = 3;                             % Number of agents
+NUM_DELIVERIES = 5;                             % Number of tasks
 NUM_ACTIVITIES = 1;
-NUM_BASES = 6;
+NUM_BASES = 5;
 
 MAX_XY = 10;
 MAX_TRANSIT = 1;
@@ -25,9 +25,9 @@ MAX_TASKS_PER_AGENT = 10;
 % ADJ_MAT = diag(ones(NUM_AGENTS-1, 1), -1) + diag(ones(NUM_AGENTS-1, 1), 1);
 ADJ_MAT = ones(NUM_AGENTS) - eye(NUM_AGENTS);
 
-BASE_POS = [1 2; 5 1; 5 4; 10 4; 2 6; 5 8]';
-TASK_POS_TARGET = [1 2; 2 4; 1 3; 3 4; 5 3; 5 6; 6 4];
-DELIVERY_POS_TARGET = [1 4; 5 4; 2 6];
+% BASE_POS = [1 2; 4 1; 5 4; 10 4; 2 6; 5 8]';
+% TASK_POS_TARGET = [1 2; 2 4; 1 3; 3 4; 5 3; 5 6; 6 4];
+% DELIVERY_POS_TARGET = [1 4; 5 4; 2 4];
 
 %% Initialization
 
@@ -39,13 +39,14 @@ deliveries = Delivery.empty(1, 0);
 
 for m = 1:NUM_BASES
     bases(m).id = m;
-    bases(m).pos = BASE_POS(:, m);
+    bases(m).pos = randi(MAX_XY, 2, 1);
 end
 
 for d = 1:NUM_DELIVERIES
+    pos_target = randperm(NUM_BASES, 2);
     deliveries(d) = Delivery(d);
-    deliveries(d).pos = DELIVERY_POS_TARGET(d, 1);
-    deliveries(d).target = DELIVERY_POS_TARGET(d, 2);
+    deliveries(d).pos = pos_target(1);
+    deliveries(d).target = pos_target(2);
     deliveries(d).reward = 100;
 end
 
@@ -58,6 +59,19 @@ end
 
 for k = 1:NUM_ACTIVITIES
     activities(k) = Activity(k);
+end
+
+grid = GridWorld([0 MAX_XY 0 MAX_XY], [bases.pos]);
+
+for j = 1:length(deliveries)
+    delivery.id = deliveries(j).id;
+    delivery.pos = bases(deliveries(j).pos).pos;
+    delivery.target = bases(deliveries(j).target).pos;
+    grid.plot_task(delivery);
+end
+
+for i = 1:length(agents)
+    grid.plot_agent(agents(i));
 end
 
 %% Calculating path for tasks
@@ -104,7 +118,7 @@ for d = 1:NUM_DELIVERIES
             
             path_list = [path_list; last_pos, deliveries(d).target, n_tasks];
             if m > 0
-                activities(1).temp(n_tasks - 1, n_tasks) = 1+norm(tasks(n_tasks).target - tasks(n_tasks).pos);
+                activities(1).temp(n_tasks - 1, n_tasks) = -1-norm(tasks(n_tasks).target - tasks(n_tasks).pos);
             end
             n_tasks = n_tasks + 1;
             
